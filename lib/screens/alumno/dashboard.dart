@@ -19,7 +19,7 @@ class AlumnoDashboard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("¡Hola, Erik!", style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+              const Text("¡Hola, Carlos!", style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
               const SizedBox(height: 30),
               
               // Tarjeta de la Gráfica
