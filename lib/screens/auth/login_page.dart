@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:congreso_app/screens/admin/staff_view.dart'; 
-import 'package:congreso_app/screens/alumno/dashboard.dart';
 
+import 'package:congreso_app/screens/alumno/main_screen.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -17,27 +16,27 @@ class _LoginPageState extends State<LoginPage> {
   void _intentarAcceso() {
     String user = _userController.text.trim();
 
-    if (user.toLowerCase() == 'admin') {
-      // 1. Caso Admin
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const StaffView()),
-      );
-    } else if (user.isNotEmpty) {
-      // 2. Caso Alumno: PRIMERO navegamos, LUEGO saludamos
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const AlumnoDashboard()),
-      );
-      
-      // Opcional: Mostrar el mensaje ya estando en la otra pantalla
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Bienvenido Alumno: $user")),
-      );
-    } else {
-      // 3. Caso Vacío
+    if (user.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Por favor ingresa tu usuario")),
+      );
+      return;
+    }
+
+    if (user.toLowerCase() == 'admin') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Acceso denegado. Esta app es exclusiva para Alumnos."),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    } else {
+      // PASAMOS EL NOMBRE a la siguiente pantalla
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MainScreen(nombreUsuario: user),
+        ),
       );
     }
   }
@@ -52,12 +51,12 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               children: [
                 Image.asset(
-                'assets/logo.png', 
-                  height: 150,       
+                  'assets/logo.png',
+                  height: 150,
                   fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 20),
-                
+
                 const SizedBox(height: 40),
                 TextField(
                   controller: _userController,
