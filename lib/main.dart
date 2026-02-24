@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:congreso_app/screens/login_page.dart';
+import 'package:congreso_app/screens/auth/login_page.dart';
 
 void main() => runApp(const CongresoApp());
 
@@ -15,4 +15,3 @@ class CongresoApp extends StatelessWidget {
     );
   }
 }
-
