@@ -6,11 +6,10 @@ import 'tabs/conferencias_tab.dart';
 import '../../core/widgets/plexus_background.dart';
 
 /**
- * MAIN SCREEN - Contenedor Principal de la App (Alumno)
- * * NOTA PARA DESARROLLO BACKEND:
- * 1. La lista 'misEventos' es el HUB central de datos. 
- * 2. Se ha implementado '_cargarDatos' para simular la persistencia desde BD.
- * 3. 'id' es la llave primaria para vincular el escaneo QR con el registro.
+ * MAIN SCREEN - Hub Principal del Congreso ITESCAM
+ * * NOTA PARA BACKEND:
+ * 1. 'misEventos' debe sincronizarse con la DB para persistir la asistencia [cite: 2026-02-27].
+ * 2. La lógica de 'proximoEvento' ahora es dinámica y se actualiza al marcar asistencia.
  */
 class MainScreen extends StatefulWidget {
   final String nombreUsuario;
@@ -30,21 +29,14 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    _cargarDatos(); // Inicializa la carga de datos al entrar
+    _cargarDatos(); // Recupera el estado inicial de los eventos [cite: 2026-02-27]
   }
 
-  /**
-   * MÉTODO: _cargarDatos
-   * Simula la petición GET al servidor para recuperar eventos y estados de asistencia.
-   * Backend: Sustituir el delay por una llamada real al ApiService.
-   */
   Future<void> _cargarDatos() async {
     setState(() => _estaCargando = true);
+    await Future.delayed(const Duration(seconds: 1)); // Simulación de red
 
-    // Simulación de latencia de red
-    await Future.delayed(const Duration(seconds: 1));
-
-    // Datos iniciales (En producción vendrán del servidor)
+    // Backend: Estos datos deben venir de un GET /eventos?usuario=matricula [cite: 2026-02-27]
     misEventos = [
       {
         "id": "flutter_01",
@@ -77,11 +69,18 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // RECONSTRUCCIÓN DINÁMICA DE PÁGINAS
+    // --- LÓGICA DEL PRÓXIMO EVENTO ---
+    // Buscamos el primer evento en la lista que aún no ha sido asistido [cite: 2026-02-27]
+    final proximo = misEventos.firstWhere(
+      (e) => e['asistido'] == false,
+      orElse: () => {},
+    );
+
     final List<Widget> pages = [
       HomeTab(
         usuario: widget.nombreUsuario,
         eventos: misEventos,
+        // Pasamos la función de navegación para que la Card del Home funcione [cite: 2026-02-27]
         onNavigate: (index) => setState(() => _currentIndex = index),
       ),
       ActividadesTab(usuario: widget.nombreUsuario, eventos: misEventos),
@@ -91,12 +90,6 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: _currentIndex != 0,
-        leading: _currentIndex != 0
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => setState(() => _currentIndex = 0),
-              )
-            : null,
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         title: Text(
@@ -139,78 +132,52 @@ class _MainScreenState extends State<MainScreen> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.indigo,
-        shape: const CircleBorder(),
         onPressed: () => _abrirEscaner(),
         child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 30),
       ),
     );
   }
 
-  // --- MÉTODOS DE ASISTENCIA ---
+  // --- MÉTODOS DE SCANNER Y ASISTENCIA ---
 
   void _abrirEscaner() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
       builder: (context) => SizedBox(
         height: MediaQuery.of(context).size.height * 0.75,
-        child: Column(
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(20.0),
-              child: Text(
-                "Escanear QR de Asistencia",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-            ),
-            Expanded(
-              child: MobileScanner(
-                onDetect: (capture) {
-                  final barcode = capture.barcodes.first;
-                  final String? codigoLeido = barcode.rawValue;
-                  if (codigoLeido != null) {
-                    Navigator.pop(context);
-                    _procesarAsistencia(codigoLeido);
-                  }
-                },
-              ),
-            ),
-          ],
+        child: MobileScanner(
+          onDetect: (capture) {
+            final barcode = capture.barcodes.first;
+            if (barcode.rawValue != null) {
+              Navigator.pop(context);
+              _procesarAsistencia(barcode.rawValue!);
+            }
+          },
         ),
       ),
     );
   }
 
   void _procesarAsistencia(String idLeido) {
-    bool encontrado = false;
-    String tituloEvento = "";
-
     setState(() {
       for (var evento in misEventos) {
         if (evento['id'] == idLeido) {
-          evento['asistido'] = true;
-          encontrado = true;
-          tituloEvento = evento['Nombre conferencia']?.toString() ?? "Evento";
+          evento['asistido'] =
+              true; // Se marca como asistido y se actualiza el Home [cite: 2026-02-27]
+          _mostrarExito(evento['Nombre conferencia'] ?? "Evento");
+          return;
         }
       }
-    });
-
-    if (encontrado) {
-      _mostrarExito(tituloEvento);
-    } else {
       _mostrarError(idLeido);
-    }
+    });
   }
 
   void _mostrarExito(String titulo) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("✅ Asistencia registrada: $titulo"),
+        content: Text("✅ Registrado: $titulo"),
         backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -218,9 +185,8 @@ class _MainScreenState extends State<MainScreen> {
   void _mostrarError(String id) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("❌ El código '$id' no es válido"),
+        content: Text("❌ Código $id no válido"),
         backgroundColor: Colors.redAccent,
-        behavior: SnackBarBehavior.floating,
       ),
     );
   }
