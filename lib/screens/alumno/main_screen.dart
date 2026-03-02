@@ -5,6 +5,13 @@ import 'tabs/actividades_tab.dart';
 import 'tabs/conferencias_tab.dart';
 import '../../core/widgets/plexus_background.dart';
 
+/**
+ * MAIN SCREEN - Contenedor Principal de la App (Alumno)
+ * * NOTA PARA DESARROLLO BACKEND:
+ * 1. La lista 'misEventos' es el HUB central de datos. 
+ * 2. Se ha implementado '_cargarDatos' para simular la persistencia desde BD.
+ * 3. 'id' es la llave primaria para vincular el escaneo QR con el registro.
+ */
 class MainScreen extends StatefulWidget {
   final String nombreUsuario;
   const MainScreen({super.key, required this.nombreUsuario});
@@ -15,54 +22,73 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
+  bool _estaCargando = true;
 
-  // 1. LISTA MAESTRA DE DATOS (Lo que pidió el Profe Lira)
-  // Agregamos campos extra para que ActividadesTab no de error de null
-  List<Map<String, dynamic>> misEventos = [
-    {
-      "id": "flutter_01",
-      "titulo": "Taller de Flutter Intermedio",
-      "instructor": "Ing. Roberto G.",
-      "lugar": "Laboratorio B",
-      "hora": "10:00 AM",
-      "asistido": false,
-      "color": Colors.orange,
-      "icono": Icons.code,
-    },
-    {
-      "id": "ia_2026",
-      "titulo": "Conferencia IA y Futuro",
-      "instructor": "Dr. Armando Ruiz",
-      "lugar": "Auditorio Principal",
-      "hora": "12:00 PM",
-      "asistido": false,
-      "color": Colors.blue,
-      "icono": Icons.psychology,
-    },
-    {
-      "id": "cyber_cloud",
-      "titulo": "Seguridad en la Nube",
-      "instructor": "Mtra. Elena Solís",
-      "lugar": "Sala de Usos Múltiples",
-      "hora": "04:00 PM",
-      "asistido": false,
-      "color": Colors.redAccent,
-      "icono": Icons.lock_outline,
-    },
-  ];
+  // --- ESTRUCTURA DE DATOS MAESTRA ---
+  List<Map<String, dynamic>> misEventos = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarDatos(); // Inicializa la carga de datos al entrar
+  }
+
+  /**
+   * MÉTODO: _cargarDatos
+   * Simula la petición GET al servidor para recuperar eventos y estados de asistencia.
+   * Backend: Sustituir el delay por una llamada real al ApiService.
+   */
+  Future<void> _cargarDatos() async {
+    setState(() => _estaCargando = true);
+
+    // Simulación de latencia de red
+    await Future.delayed(const Duration(seconds: 1));
+
+    // Datos iniciales (En producción vendrán del servidor)
+    misEventos = [
+      {
+        "id": "flutter_01",
+        "Nombre conferencia": "Taller de Flutter Intermedio",
+        "Nombre": "Ing. Roberto G.",
+        "Salon": "Laboratorio B",
+        "Hora": "10:00 AM",
+        "Dia": "Lunes 16",
+        "asistido": false,
+        "Talleres": "S",
+        "color": Colors.orange,
+        "icono": Icons.code,
+      },
+      {
+        "id": "ia_2026",
+        "Nombre conferencia": "Conferencia IA y Futuro",
+        "Nombre": "Dr. Armando Ruiz",
+        "Salon": "Auditorio Principal",
+        "Hora": "12:00 PM",
+        "Dia": "Martes 17",
+        "asistido": false,
+        "Talleres": null,
+        "color": Colors.blue,
+        "icono": Icons.psychology,
+      },
+    ];
+
+    setState(() => _estaCargando = false);
+  }
 
   @override
   Widget build(BuildContext context) {
-    // 2. RECONSTRUCCIÓN DINÁMICA DE PÁGINAS
-    // Las definimos aquí dentro para que siempre usen la lista 'misEventos' actualizada
+    // RECONSTRUCCIÓN DINÁMICA DE PÁGINAS
     final List<Widget> pages = [
-      HomeTab(usuario: widget.nombreUsuario),
+      HomeTab(
+        usuario: widget.nombreUsuario,
+        eventos: misEventos,
+        onNavigate: (index) => setState(() => _currentIndex = index),
+      ),
       ActividadesTab(usuario: widget.nombreUsuario, eventos: misEventos),
       ConferenciasTab(eventos: misEventos),
     ];
 
     return Scaffold(
-      extendBody: false,
       appBar: AppBar(
         automaticallyImplyLeading: _currentIndex != 0,
         leading: _currentIndex != 0
@@ -90,7 +116,11 @@ class _MainScreenState extends State<MainScreen> {
       body: Stack(
         children: [
           const PlexusBackground(),
-          IndexedStack(index: _currentIndex, children: pages),
+          _estaCargando
+              ? const Center(
+                  child: CircularProgressIndicator(color: Colors.indigo),
+                )
+              : IndexedStack(index: _currentIndex, children: pages),
         ],
       ),
       bottomNavigationBar: BottomAppBar(
@@ -101,7 +131,7 @@ class _MainScreenState extends State<MainScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildTabItem(index: 1, icon: Icons.event, label: "Actividades"),
-            const SizedBox(width: 40), // Espacio para el FAB
+            const SizedBox(width: 40),
             _buildTabItem(index: 2, icon: Icons.school, label: "Conferencias"),
           ],
         ),
@@ -110,39 +140,13 @@ class _MainScreenState extends State<MainScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.indigo,
         shape: const CircleBorder(),
-        elevation: 8,
         onPressed: () => _abrirEscaner(),
         child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 30),
       ),
     );
   }
 
-  // Widget auxiliar para los botones del BottomAppBar
-  Widget _buildTabItem({
-    required int index,
-    required IconData icon,
-    required String label,
-  }) {
-    return InkResponse(
-      onTap: () => setState(() => _currentIndex = index),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: _currentIndex == index ? Colors.indigo : Colors.grey,
-          ),
-          Text(
-            label,
-            style: TextStyle(
-              color: _currentIndex == index ? Colors.indigo : Colors.grey,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // --- MÉTODOS DE ASISTENCIA ---
 
   void _abrirEscaner() {
     showModalBottomSheet(
@@ -174,7 +178,6 @@ class _MainScreenState extends State<MainScreen> {
                 },
               ),
             ),
-            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -190,7 +193,7 @@ class _MainScreenState extends State<MainScreen> {
         if (evento['id'] == idLeido) {
           evento['asistido'] = true;
           encontrado = true;
-          tituloEvento = evento['titulo'];
+          tituloEvento = evento['Nombre conferencia']?.toString() ?? "Evento";
         }
       }
     });
@@ -218,6 +221,32 @@ class _MainScreenState extends State<MainScreen> {
         content: Text("❌ El código '$id' no es válido"),
         backgroundColor: Colors.redAccent,
         behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Widget _buildTabItem({
+    required int index,
+    required IconData icon,
+    required String label,
+  }) {
+    return InkResponse(
+      onTap: () => setState(() => _currentIndex = index),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: _currentIndex == index ? Colors.indigo : Colors.grey,
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              color: _currentIndex == index ? Colors.indigo : Colors.grey,
+              fontSize: 12,
+            ),
+          ),
+        ],
       ),
     );
   }
