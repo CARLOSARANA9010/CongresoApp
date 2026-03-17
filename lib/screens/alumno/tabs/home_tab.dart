@@ -1,44 +1,32 @@
 import 'package:flutter/material.dart';
 import '../../../core/widgets/card_progreso.dart';
+import 'package:congreso_app/data/models/alumno_model.dart';
 
-/**
- * HOME TAB - Pantalla de Resumen para el Alumno
- * * NOTA PARA BACKEND: 
- * Este widget depende de una lista de mapas llamada 'eventos'.
- * Las llaves esperadas coinciden con la estructura del inventario (WhatsApp 2026-02-27):
- * - 'Nombre conferencia' (String)
- * - 'Salon' (String)
- * - 'Hora' (String)
- * - 'Dia' (String)
- * - 'Talleres' (String? -> null para Conferencias, !null para Talleres)
- * - 'asistido' (bool -> gestionado localmente o por API de asistencia)
- */
 class HomeTab extends StatelessWidget {
-  final String usuario;
+  final Alumno alumno;
   final List<Map<String, dynamic>> eventos;
-  final Function(int)
-  onNavigate; // Función para cambiar de pestaña en MainScreen
+  final Function(int) onNavigate;
 
   const HomeTab({
     super.key,
-    required this.usuario,
+    required this.alumno,
     required this.eventos,
     required this.onNavigate,
   });
 
   @override
   Widget build(BuildContext context) {
-    // --- LÓGICA DE PROGRESO ---
-    int totalEventos = eventos.length;
-    int completados = eventos.where((e) => e['asistido'] == true).length;
+    // --- LÓGICA DE PROGRESO FILTRADA (Solo Talleres) ---
+    final talleres = eventos.where((e) => e['Talleres'] == "S").toList();
 
-    double porcentajeDouble = totalEventos > 0
-        ? completados / totalEventos
+    int totalTalleres = talleres.length;
+    int completados = talleres.where((e) => e['asistido'] == true).length;
+
+    double porcentajeDouble = totalTalleres > 0
+        ? completados / totalTalleres
         : 0.0;
     String porcentajeTexto = "${(porcentajeDouble * 100).toInt()}%";
 
-    // --- LÓGICA DE NAVEGACIÓN DINÁMICA ---
-    // Buscamos el primer evento pendiente (asistido == false)
     final proximoEvento = eventos.firstWhere(
       (e) => e['asistido'] == false,
       orElse: () => {},
@@ -49,22 +37,51 @@ class HomeTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // BIENVENIDA PERSONALIZADA
           Text(
-            "¡Hola, $usuario!",
+            "¡Hola, ${alumno.name} ${alumno.secondName}!",
             style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
           ),
           const Text(
-            "Este es tu resumen general del Congreso",
+            "Resumen de tus actividades prácticas",
             style: TextStyle(color: Colors.grey),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 20),
 
-          // Gráfica de Progreso Calculada
+          // --- BANNER DE PAGO PENDIENTE ---
+          if (alumno.status.toLowerCase() == "pendiente")
+            Container(
+              margin: const EdgeInsets.only(bottom: 25),
+              padding: const EdgeInsets.all(15),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.redAccent, width: 1),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      "ATENCIÓN: Falta el pago de tu inscripción. Acude al módulo del ITESCAM.",
+                      style: TextStyle(
+                        color: Colors.redAccent,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // Gráfica de Progreso
           Center(
             child: _buildCircularProgress(
               porcentajeDouble,
               porcentajeTexto,
-              "Progreso Total",
+              "Progreso en Talleres",
             ),
           ),
 
@@ -75,7 +92,7 @@ class HomeTab extends StatelessWidget {
           ),
           const SizedBox(height: 10),
 
-          // Renderizado condicional del próximo evento
+          // Renderizado del próximo evento
           if (proximoEvento.isNotEmpty)
             Card(
               elevation: 4,
@@ -85,11 +102,7 @@ class HomeTab extends StatelessWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(15),
                 onTap: () {
-                  /** * REDIRECCIÓN DINÁMICA:
-                   * Basado en la llave 'Talleres' del backend.
-                   * Index 1: ActividadesTab (Si es Taller)
-                   * Index 2: ConferenciasTab (Si no es Taller)
-                   */
+                  // Navegación inteligente según el tipo, supongo
                   int targetIndex = proximoEvento['Talleres'] != null ? 1 : 2;
                   onNavigate(targetIndex);
                 },
@@ -149,7 +162,7 @@ class HomeTab extends StatelessWidget {
       porcentaje: porcentaje,
       titulo: titulo,
       subtitulo: subtitulo,
-      colorPrincipal: Colors.indigo,
+      colorPrincipal: Colors.orange,
     );
   }
 }

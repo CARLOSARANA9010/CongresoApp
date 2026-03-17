@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:congreso_app/screens/alumno/main_screen.dart'; // Tu ruta
+import 'package:congreso_app/screens/alumno/main_screen.dart';
+import 'package:congreso_app/data/models/alumno_model.dart';
 
 class SplashScreen extends StatefulWidget {
-  final String nombreUsuario;
-  const SplashScreen({super.key, required this.nombreUsuario});
+  final Alumno alumno;
+  const SplashScreen({super.key, required this.alumno});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -18,7 +19,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    // CONTROLADOR PRINCIPAL: 25 segundos para el fondo LENTO
+    // CONTROLADOR PRINCIPAL
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 25),
@@ -30,8 +31,7 @@ class _SplashScreenState extends State<SplashScreen>
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                MainScreen(nombreUsuario: widget.nombreUsuario),
+            builder: (context) => MainScreen(alumno: widget.alumno),
           ),
         );
       }
@@ -52,7 +52,7 @@ class _SplashScreenState extends State<SplashScreen>
           // 1. FONDO: Gradiente profundo Negro/Indigo
           Container(color: const Color(0xFF000520)),
 
-          // 2. ANIMACIÓN DE FONDO: Lava Tech Lenta (25s)
+          // 2. ANIMACIÓN DE FONDO
           AnimatedBuilder(
             animation: _controller,
             builder: (context, child) {
@@ -69,7 +69,7 @@ class _SplashScreenState extends State<SplashScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo ITESCAM (itescam_logo.png)
+                  // Logo ITESCAM
                   Image.asset(
                     'assets/itescam_logo.png',
                     height: 150,
