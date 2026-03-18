@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/**
- * CONFERENCIAS TAB - Módulo de Visualización de Ponencias
- */
+/// Módulo de visualización del ciclo de conferencias.
+/// Presenta los eventos teóricos y valida la disponibilidad según la fecha actual.
 class ConferenciasTab extends StatelessWidget {
   final List<Map<String, dynamic>> eventos;
-  // --- EL CEREBRO PARA EL ESCÁNER, supongo ---
   final Function(String) onRegister;
 
   const ConferenciasTab({
@@ -17,7 +15,7 @@ class ConferenciasTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // FILTRADO: Solo conferencias
+    // Filtra la colección de eventos para aislar únicamente las conferencias.
     final conferencias = eventos.where((e) => e['Talleres'] == null).toList();
 
     return ListView(
@@ -29,8 +27,11 @@ class ConferenciasTab extends StatelessWidget {
         ),
         const SizedBox(height: 15),
 
-        ...conferencias.map(
-          (conf) => _cardInformativa(
+        // Iteración y renderizado de las tarjetas de conferencia.
+        ...conferencias.map((conf) {
+          final bool esDeHoy = conf['es_de_hoy'] == true;
+
+          return _cardInformativa(
             context,
             id: conf['id']?.toString() ?? "0",
             titulo: conf['Nombre conferencia']?.toString() ?? "Sin título",
@@ -41,17 +42,18 @@ class ConferenciasTab extends StatelessWidget {
             hora: conf['Hora']?.toString() ?? "Horario pendiente",
             dia: conf['Dia']?.toString() ?? "Día pendiente",
             pdfUrl: conf['Documento completo']?.toString() ?? "",
-            asistido: conf['asistido'] ?? false, // <--- ESTO ES VITAL
-            color: (conf['asistido'] ?? false)
-                ? Colors.green
-                : (conf['color'] as Color? ?? Colors.indigo),
+            asistido: conf['asistido'] ?? false,
+            color: conf['color'] as Color? ?? Colors.indigo,
             icono: conf['icono'] as IconData? ?? Icons.school,
-          ),
-        ),
+            esDeHoy: esDeHoy,
+          );
+        }),
       ],
     );
   }
 
+  /// Construye el componente visual para una conferencia específica.
+  /// Incluye validación de interacción mediante la variable [esDeHoy].
   Widget _cardInformativa(
     BuildContext context, {
     required String id,
@@ -65,9 +67,10 @@ class ConferenciasTab extends StatelessWidget {
     required bool asistido,
     required Color color,
     required IconData icono,
+    required bool esDeHoy,
   }) {
     return Card(
-      elevation: asistido ? 8 : 2,
+      elevation: asistido ? 8 : (esDeHoy ? 2 : 1),
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
@@ -76,17 +79,32 @@ class ConferenciasTab extends StatelessWidget {
             : BorderSide.none,
       ),
       child: InkWell(
-        // <--- AÑADIMOS EL CLIC, supongo
         borderRadius: BorderRadius.circular(15),
         onTap: asistido
             ? null
             : () {
+                // Notificación contextual dependiendo del estado temporal del evento.
+                final String mensaje = esDeHoy
+                    ? "Usa el botón central de escáner QR para registrar tu asistencia."
+                    : "Esta conferencia está programada para otra fecha. No disponible hoy.";
+
+                final Color colorFondo = esDeHoy
+                    ? Colors.indigo
+                    : Colors.redAccent;
+
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      "¡Usa el escáner QR para registrar tu asistencia!",
+                  SnackBar(
+                    content: Text(mensaje),
+                    backgroundColor: colorFondo,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    backgroundColor: Colors.indigo,
+                    action: SnackBarAction(
+                      label: "OK",
+                      textColor: Colors.white,
+                      onPressed: () {},
+                    ),
                   ),
                 );
               },
@@ -117,10 +135,16 @@ class ConferenciasTab extends StatelessWidget {
                       ),
                     ),
                   ),
+                  // Renderizado de etiquetas de estado.
                   if (asistido)
                     const Badge(
                       label: Text("REGISTRADO"),
                       backgroundColor: Colors.green,
+                    )
+                  else if (!esDeHoy)
+                    const Badge(
+                      label: Text("NO DISPONIBLE HOY"),
+                      backgroundColor: Colors.grey,
                     ),
                 ],
               ),
@@ -142,6 +166,7 @@ class ConferenciasTab extends StatelessWidget {
                   const SizedBox(height: 8),
                   _filaDetalle(Icons.access_time, "Horario: $hora"),
 
+                  // Despliegue condicional del botón de material adjunto.
                   if (pdfUrl.isNotEmpty) ...[
                     const SizedBox(height: 15),
                     ElevatedButton.icon(
@@ -164,6 +189,7 @@ class ConferenciasTab extends StatelessWidget {
     );
   }
 
+  /// Construye una fila de detalles utilizando una estructura uniforme.
   Widget _filaDetalle(IconData icon, String texto) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,8 +203,10 @@ class ConferenciasTab extends StatelessWidget {
     );
   }
 
+  /// Procesa la apertura de enlaces externos hacia el material de la conferencia.
   Future<void> _launchURL(String url) async {
     final Uri uri = Uri.parse(url);
-    if (!await launchUrl(uri)) throw 'Could not launch $url';
+    if (!await launchUrl(uri))
+      throw 'No se pudo procesar la solicitud para el enlace: $url';
   }
 }

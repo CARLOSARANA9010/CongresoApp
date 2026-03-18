@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/**
- * ACTIVIDADES TAB - Vista de Talleres y Dinámicas
- */
+/// Vista encargada de renderizar la lista de talleres y dinámicas del usuario.
+/// Incorpora validaciones visuales para eventos bloqueados por fecha.
 class ActividadesTab extends StatelessWidget {
   final List<Map<String, dynamic>> eventos;
   final String usuario;
@@ -18,6 +17,7 @@ class ActividadesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Filtra la lista maestra para obtener únicamente los eventos de tipo taller.
     final actividades = eventos.where((e) => e['Talleres'] != null).toList();
 
     return ListView(
@@ -29,7 +29,7 @@ class ActividadesTab extends StatelessWidget {
         ),
         const SizedBox(height: 10),
 
-        // --- TEXTO INFORMATIVO PARA EL ALUMNO, supongo ---
+        // Banner informativo sobre el uso del escáner QR.
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -52,14 +52,13 @@ class ActividadesTab extends StatelessWidget {
         ),
         const SizedBox(height: 20),
 
+        // Mapeo iterativo de las actividades hacia el componente visual de tarjeta.
         ...actividades.map((ev) {
-          // Verificación de seguridad: solo procesamos si es un taller real, supongo
-          final bool esTallerReal = ev['Talleres'] == "S";
+          final bool esDeHoy = ev['es_de_hoy'] == true;
 
           return _cardDetallada(
             context,
             id: ev['id']?.toString() ?? "0",
-            // Si es taller real, usamos sus datos, si no, lo ignoramos, supongo
             titulo: ev['Nombre conferencia']?.toString() ?? "Sin título",
             instructor: ev['Nombre']?.toString() ?? "Por asignar",
             responsable: ev['Responsable']?.toString() ?? "Sin responsable",
@@ -68,14 +67,17 @@ class ActividadesTab extends StatelessWidget {
             dia: ev['Dia']?.toString() ?? "Día pendiente",
             pdfUrl: ev['Documento completo']?.toString() ?? "",
             asistido: ev['asistido'] ?? false,
-            color: (ev['asistido'] ?? false) ? Colors.green : Colors.orange,
+            color: ev['color'] as Color? ?? Colors.grey,
             icono: ev['icono'] as IconData? ?? Icons.build,
+            esDeHoy: esDeHoy,
           );
         }),
       ],
     );
   }
 
+  /// Construye una tarjeta detallada para cada evento, manejando sus estados
+  /// de asistencia y disponibilidad según la fecha.
   Widget _cardDetallada(
     BuildContext context, {
     required String id,
@@ -89,9 +91,10 @@ class ActividadesTab extends StatelessWidget {
     required bool asistido,
     required Color color,
     required IconData icono,
+    required bool esDeHoy,
   }) {
     return Card(
-      elevation: asistido ? 8 : 4,
+      elevation: asistido ? 8 : (esDeHoy ? 4 : 1),
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
@@ -101,17 +104,22 @@ class ActividadesTab extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(15),
-        // --- CAMBIAMOS EL COMPORTAMIENTO DEL CLIC, supongo ---
         onTap: asistido
             ? null
             : () {
-                // En lugar de registrar directo, mandamos un aviso sarcástico
+                // Validación de retroalimentación al usuario según el día del evento.
+                final String mensaje = esDeHoy
+                    ? "Usa el botón central de escáner QR para registrar tu asistencia."
+                    : "Este evento está programado para otra fecha. No disponible hoy.";
+
+                final Color colorFondo = esDeHoy
+                    ? Colors.indigo
+                    : Colors.redAccent;
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: const Text(
-                      "¡Alto ahí! Usa el botón de QR para registrar tu asistencia.",
-                    ),
-                    backgroundColor: Colors.indigo,
+                    content: Text(mensaje),
+                    backgroundColor: colorFondo,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -151,10 +159,16 @@ class ActividadesTab extends StatelessWidget {
                       ),
                     ),
                   ),
+                  // Indicadores visuales de estado del evento.
                   if (asistido)
                     const Badge(
                       label: Text("REGISTRADO"),
                       backgroundColor: Colors.green,
+                    )
+                  else if (!esDeHoy)
+                    const Badge(
+                      label: Text("NO DISPONIBLE HOY"),
+                      backgroundColor: Colors.grey,
                     ),
                 ],
               ),
@@ -176,6 +190,7 @@ class ActividadesTab extends StatelessWidget {
                   const SizedBox(height: 8),
                   _filaDetalle(Icons.access_time, "Horario: $hora"),
 
+                  // Botón de descarga condicionado a la existencia de la URL.
                   if (pdfUrl.isNotEmpty) ...[
                     const SizedBox(height: 15),
                     OutlinedButton.icon(
@@ -198,6 +213,7 @@ class ActividadesTab extends StatelessWidget {
     );
   }
 
+  /// Construye una fila estandarizada para mostrar metadatos del evento con icono.
   Widget _filaDetalle(IconData icon, String texto) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,8 +227,9 @@ class ActividadesTab extends StatelessWidget {
     );
   }
 
+  /// Ejecuta el lanzamiento de URLs externas mediante el paquete url_launcher.
   Future<void> _launchURL(String url) async {
     final Uri uri = Uri.parse(url);
-    if (!await launchUrl(uri)) throw 'Could not launch $url';
+    if (!await launchUrl(uri)) throw 'No se pudo abrir la URL externa: $url';
   }
 }

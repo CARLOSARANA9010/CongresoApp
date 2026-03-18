@@ -12,7 +12,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _userController = TextEditingController();
-  bool _isLoading = false; // Para mostrar el progreso de carga, supongo
+  bool _isLoading = false; // Para mostrar el progreso de carga
 
   /**
    * MÉTODO: _intentarAcceso
@@ -22,7 +22,7 @@ class _LoginPageState extends State<LoginPage> {
     String email = _userController.text.trim();
 
     if (email.isEmpty) {
-      _mostrarMensaje("Por favor ingresa tu correo institucional");
+      _mostrarMensaje("Por favor ingresa tu correo");
       return;
     }
 
@@ -87,7 +87,7 @@ class _LoginPageState extends State<LoginPage> {
                   controller: _userController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
-                    labelText: 'Correo Institucional',
+                    labelText: 'Correo Electrónico',
                     helperText: 'Usa el correo con el que te registraste',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.email),

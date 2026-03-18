@@ -16,19 +16,48 @@ class HomeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // --- LÓGICA DE PROGRESO FILTRADA (Solo Talleres) ---
-    final talleres = eventos.where((e) => e['Talleres'] == "S").toList();
+    // --- 1. PROGRESO DE TALLERES ---
+    // Filtra únicamente los eventos clasificados como talleres, excluyendo concursos.
+    final talleres = eventos
+        .where(
+          (e) =>
+              e['Talleres'] == "S" && !e['id'].toString().contains("concurso"),
+        )
+        .toList();
 
     int totalTalleres = talleres.length;
-    int completados = talleres.where((e) => e['asistido'] == true).length;
+    int completadosT = talleres.where((e) => e['asistido'] == true).length;
 
-    double porcentajeDouble = totalTalleres > 0
-        ? completados / totalTalleres
+    // Calcula el porcentaje de avance de talleres. clamp(0.0, 1.0) evita valores fuera de rango en la interfaz gráfica.
+    double progresoTalleres = totalTalleres > 0
+        ? (completadosT / totalTalleres).clamp(0.0, 1.0)
         : 0.0;
-    String porcentajeTexto = "${(porcentajeDouble * 100).toInt()}%";
+    String textoTalleres = totalTalleres > 0
+        ? "$completadosT de $totalTalleres"
+        : "0 de 0";
 
+    // --- 2. PROGRESO DE CONFERENCIAS ---
+    // Filtra los eventos clasificados como conferencias (sin el tag de taller ni concurso).
+    final conferencias = eventos
+        .where(
+          (e) =>
+              e['Talleres'] == null && !e['id'].toString().contains("concurso"),
+        )
+        .toList();
+    int completadasC = conferencias.where((e) => e['asistido'] == true).length;
+
+    // Calcula el porcentaje en base a un mínimo de 3 conferencias requeridas por las reglas del congreso.
+    double progresoConferencias = (completadasC / 3.0).clamp(0.0, 1.0);
+
+    // Asigna el texto de progreso, añadiendo un distintivo visual si se supera el mínimo requerido.
+    String textoConferencias = completadasC > 3
+        ? "$completadasC de 3 🌟"
+        : "$completadasC de 3";
+
+    // --- 3. PRÓXIMO EVENTO ---
+    // Obtiene el próximo evento pendiente de asistencia que esté programado para el día actual.
     final proximoEvento = eventos.firstWhere(
-      (e) => e['asistido'] == false,
+      (e) => e['asistido'] == false && e['es_de_hoy'] == true,
       orElse: () => {},
     );
 
@@ -37,7 +66,6 @@ class HomeTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // BIENVENIDA PERSONALIZADA
           Text(
             "¡Hola, ${alumno.name} ${alumno.secondName}!",
             style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
@@ -48,7 +76,7 @@ class HomeTab extends StatelessWidget {
           ),
           const SizedBox(height: 20),
 
-          // --- BANNER DE PAGO PENDIENTE ---
+          // Banner condicional para alumnos con pago de inscripción pendiente.
           if (alumno.status.toLowerCase() == "pendiente")
             Container(
               margin: const EdgeInsets.only(bottom: 25),
@@ -76,23 +104,38 @@ class HomeTab extends StatelessWidget {
               ),
             ),
 
-          // Gráfica de Progreso
-          Center(
-            child: _buildCircularProgress(
-              porcentajeDouble,
-              porcentajeTexto,
-              "Progreso en Talleres",
-            ),
+          // Renderizado de tarjetas de progreso.
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              Expanded(
+                child: _buildCircularProgress(
+                  progresoTalleres,
+                  textoTalleres,
+                  "Talleres\nCompletados",
+                  Colors.orange,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildCircularProgress(
+                  progresoConferencias,
+                  textoConferencias,
+                  "Conferencias\nMínimas",
+                  Colors.indigo,
+                ),
+              ),
+            ],
           ),
 
           const SizedBox(height: 40),
           const Text(
-            "Próximo evento en tu agenda:",
+            "Próximo evento en tu agenda (Hoy):",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
 
-          // Renderizado del próximo evento
+          // Renderizado de la tarjeta del próximo evento o mensaje de día libre.
           if (proximoEvento.isNotEmpty)
             Card(
               elevation: 4,
@@ -102,7 +145,7 @@ class HomeTab extends StatelessWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(15),
                 onTap: () {
-                  // Navegación inteligente según el tipo, supongo
+                  // Redirección dinámica dependiendo del tipo de evento (Taller o Conferencia).
                   int targetIndex = proximoEvento['Talleres'] != null ? 1 : 2;
                   onNavigate(targetIndex);
                 },
@@ -141,10 +184,10 @@ class HomeTab extends StatelessWidget {
             const Card(
               elevation: 2,
               child: ListTile(
-                leading: Icon(Icons.celebration, color: Colors.orange),
-                title: Text("¡Has terminado!"),
+                leading: Icon(Icons.celebration, color: Colors.green),
+                title: Text("¡Día libre!"),
                 subtitle: Text(
-                  "No tienes más eventos pendientes en tu agenda.",
+                  "No tienes eventos pendientes para hoy. ¡Disfruta el congreso!",
                 ),
               ),
             ),
@@ -153,16 +196,18 @@ class HomeTab extends StatelessWidget {
     );
   }
 
+  /// Método auxiliar para instanciar el widget de CardProgreso con parámetros específicos.
   Widget _buildCircularProgress(
     double porcentaje,
     String titulo,
     String subtitulo,
+    Color colorP,
   ) {
     return CardProgreso(
       porcentaje: porcentaje,
       titulo: titulo,
       subtitulo: subtitulo,
-      colorPrincipal: Colors.orange,
+      colorPrincipal: colorP,
     );
   }
 }
