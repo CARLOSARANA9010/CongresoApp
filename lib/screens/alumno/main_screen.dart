@@ -9,7 +9,6 @@ import 'package:congreso_app/data/services/api_service.dart';
 import 'package:geolocator/geolocator.dart';
 
 /// Hub Principal del Congreso ITESCAM.
-/// Gestiona el estado global de eventos, validaciones de red y seguridad GPS.
 class MainScreen extends StatefulWidget {
   final Alumno alumno;
   const MainScreen({super.key, required this.alumno});
@@ -23,11 +22,9 @@ class _MainScreenState extends State<MainScreen> {
   bool _estaCargando = true;
   List<Map<String, dynamic>> misEventos = [];
 
-  // Constantes de geocercado para validación de asistencia
   static const double itescamLat = 20.3698;
   static const double itescamLon = -90.0515;
-  static const double radioMaximoMetros =
-      5000.0; // Restringido a 500m para evitar registros remotos
+  static const double radioMaximoMetros = 2000.0;
 
   @override
   void initState() {
@@ -35,7 +32,6 @@ class _MainScreenState extends State<MainScreen> {
     _cargarDatos();
   }
 
-  /// Formatea la cadena de tiempo proveniente de la base de datos.
   String _limpiarHora(dynamic rawTime) {
     String timeStr = rawTime?.toString() ?? "00:00";
     if (timeStr.contains('T')) return timeStr.split('T')[1].substring(0, 5);
@@ -43,19 +39,13 @@ class _MainScreenState extends State<MainScreen> {
     return timeStr.length >= 5 ? timeStr.substring(0, 5) : timeStr;
   }
 
-  /// Carga el itinerario completo del usuario, resolviendo estado de red e historial de asistencias.
   Future<void> _cargarDatos() async {
     setState(() => _estaCargando = true);
     misEventos = [];
     final ApiService api = ApiService();
 
-    // 1. Detección de entorno de red (ITESCAM vs Externo)
     await api.detectarRed();
-
-    // 2. Establecimiento de la fecha actual para bloqueo temporal
     final String hoy = DateTime.now().toIso8601String().split('T')[0];
-
-    // 3. Obtención de asistencias previas
     List<String> yaAsistidos = await api.getAsistenciasUsuario(
       widget.alumno.email,
     );
@@ -63,13 +53,12 @@ class _MainScreenState extends State<MainScreen> {
     final String miTallerNombre = widget.alumno.workshopName ?? '';
     final String miConcurso = widget.alumno.contestName ?? '';
 
-    // --- CARGA DE TALLERES (Múltiples días) ---
+    // --- CARGA DE TALLERES ---
     if (miTallerNombre.isNotEmpty &&
         miTallerNombre.toLowerCase() != 'no entro' &&
         miTallerNombre.toLowerCase() != 'pendiente') {
       final List<dynamic> listaTalleres = await api.getWorkshops();
 
-      // Filtrado de todas las sesiones correspondientes al taller inscrito
       final misTalleresInscritos = listaTalleres.where((t) {
         return (t['workshop_name']?.toString() ?? "") == miTallerNombre;
       }).toList();
@@ -77,22 +66,20 @@ class _MainScreenState extends State<MainScreen> {
       for (var t in misTalleresInscritos) {
         final String diaT =
             t['day']?.toString().split(' ')[0].split('T')[0] ?? "";
-        final String idManual = t['id_workshop']?.toString().trim() ?? "";
-        final String idRealFila = t['Id'].toString().trim();
+        final String idManual =
+            t['id_workshop']?.toString().trim() ?? ""; // EL DEL QR
 
         misEventos.add({
-          "id": "taller_$idRealFila",
-          "id_manual": idManual, // Identificador auxiliar para cruce de datos
+          "id": "taller_$idManual",
+          "id_manual": idManual,
           "Nombre conferencia": t['workshop_name'] ?? miTallerNombre,
           "Nombre": t['instructor'] ?? "Instructor por definir",
           "Responsable": t['responsible_person'] ?? "Sin responsable",
           "Salon": t['room'] ?? "Sede ITESCAM",
           "Hora": _limpiarHora(t['time']),
           "Dia": diaT,
-          "es_de_hoy": diaT == hoy, // Bandera para bloqueo UI en ActividadesTab
-          "asistido":
-              yaAsistidos.contains(idManual) ||
-              yaAsistidos.contains(idRealFila),
+          "es_de_hoy": diaT == hoy,
+          "asistido": yaAsistidos.contains(idManual), // <--- VALIDACIÓN EXACTA
           "Talleres": "S",
           "color": diaT == hoy ? Colors.orange : Colors.grey.shade400,
           "icono": Icons.build,
@@ -110,7 +97,7 @@ class _MainScreenState extends State<MainScreen> {
         "Nombre": "Competencia Oficial",
         "Responsable": "Comité Organizador",
         "asistido": yaAsistidos.contains(idConcurso),
-        "es_de_hoy": true, // Los concursos suelen estar siempre disponibles
+        "es_de_hoy": true,
         "Talleres": "S",
         "color": Colors.blue,
         "icono": Icons.emoji_events,
@@ -120,26 +107,25 @@ class _MainScreenState extends State<MainScreen> {
       });
     }
 
-    // --- CARGA DE CONFERENCIAS GLOBALES ---
+    // --- CARGA DE CONFERENCIAS ---
     final listaConferencias = await api.getConferencias();
     for (var conf in listaConferencias) {
       final String diaConf =
           conf['day']?.toString().split(' ')[0].split('T')[0] ?? "";
-      final String idConf = conf['Id'].toString().trim();
+      final String idConf = conf['Id'].toString().trim(); // NÚMERO DE FILA
 
       misEventos.add({
         "id": "conf_$idConf",
-        "id_manual": idConf,
+        "id_manual": idConf, // <--- EL ID DE CONFERENCIA ES EL MANUAL AHORA
         "Nombre conferencia": conf['conference_name'] ?? "Conferencia",
         "Nombre": conf['speaker_name'] ?? "Ponente",
         "Responsable": conf['responsible_person'] ?? "Sin responsable",
         "Salon": conf['room'] ?? "Sede ITESCAM",
         "Hora": _limpiarHora(conf['time']),
         "Dia": diaConf,
-        "es_de_hoy":
-            diaConf == hoy, // Bandera para bloqueo UI en ConferenciasTab
-        "asistido": yaAsistidos.contains(idConf),
-        "Talleres": null,
+        "es_de_hoy": diaConf == hoy,
+        "asistido": yaAsistidos.contains(idConf), // <--- VALIDACIÓN EXACTA
+        "Talleres": null, // NECESARIO PARA EL FILTRO
         "color": diaConf == hoy ? Colors.indigo : Colors.grey.shade400,
         "icono": Icons.campaign,
       });
@@ -148,17 +134,12 @@ class _MainScreenState extends State<MainScreen> {
     if (mounted) setState(() => _estaCargando = false);
   }
 
-  /// Procesa la lógica de negocio al detectar un código QR.
   Future<void> _procesarAsistencia(String idLeido) async {
     final String idLimpio = idLeido.trim();
-    final String hoy = DateTime.now().toIso8601String().split('T')[0];
 
-    // 1. Identificación del evento objetivo en la memoria local
     final eventoTarget = misEventos.firstWhere(
-      (e) =>
-          e['id'].toString().contains(idLimpio) ||
-          e['id_manual'].toString() == idLimpio,
-      orElse: () => {},
+      (e) => e['id_manual'].toString() == idLimpio,
+      orElse: () => <String, dynamic>{},
     );
 
     if (eventoTarget.isEmpty) {
@@ -166,7 +147,6 @@ class _MainScreenState extends State<MainScreen> {
       return;
     }
 
-    // 2. Control de Acceso Basado en Tiempo (Bloqueo de fechas futuras/pasadas)
     if (eventoTarget['es_de_hoy'] == false) {
       _mostrarError(
         "Acceso denegado. Este evento está programado para el día ${eventoTarget['Dia']}.",
@@ -174,7 +154,6 @@ class _MainScreenState extends State<MainScreen> {
       return;
     }
 
-    // 3. Validación de duplicidad
     if (eventoTarget['asistido'] == true) {
       _mostrarError(
         "La asistencia para este evento ya ha sido registrada previamente.",
@@ -184,7 +163,6 @@ class _MainScreenState extends State<MainScreen> {
 
     setState(() => _estaCargando = true);
 
-    // 4. Validación de Geocercado (GPS)
     Position? miPosicion = await _obtenerPosicionSegura();
 
     if (miPosicion == null) {
@@ -201,6 +179,9 @@ class _MainScreenState extends State<MainScreen> {
         ? "taller"
         : (_currentIndex == 2 ? "conferencia" : "home_scan");
 
+    // 5. OBTENCIÓN DEL ID MAESTRO QUE SE ENVÍA A NOCODB
+    String idParaRegistro = eventoTarget['id_manual'].toString();
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text("Autenticando ubicación y procesando registro..."),
@@ -208,12 +189,12 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
 
-    // 5. Transacción de red hacia la API
     final ApiService api = ApiService();
-    await api.detectarRed(); // Re-verificación de conectividad local
+    await api.detectarRed();
 
     bool exito = await api.registrarAsistencia(
-      idEvento: idLimpio,
+      idEvento:
+          idParaRegistro, // <--- ENVIAMOS EL 28, 29, O EL ID DE LA CONFERENCIA EXACTO
       idUsuario: widget.alumno.email,
       tipo: etiquetaTipo,
       lugar: coordenadasString,
@@ -221,14 +202,15 @@ class _MainScreenState extends State<MainScreen> {
 
     if (exito) {
       _mostrarExito("Registro completado exitosamente.");
-      await _cargarDatos(); // Refresco del estado global para actualizar UI
+      await _cargarDatos();
     } else {
       setState(() => _estaCargando = false);
-      _mostrarError("Fallo de comunicación con el servidor de base de datos.");
+      _mostrarError(
+        "No se pudo registrar. Intenta de nuevo o verifica tu conexión.",
+      );
     }
   }
 
-  /// Obtiene la ubicación del dispositivo con alta precisión y valida contra la geocerca.
   Future<Position?> _obtenerPosicionSegura() async {
     bool servicioHabilitado;
     LocationPermission permiso;
@@ -254,14 +236,11 @@ class _MainScreenState extends State<MainScreen> {
       itescamLon,
     );
 
-    if (distancia > radioMaximoMetros) {
-      return null;
-    }
+    if (distancia > radioMaximoMetros) return null;
 
     return posicion;
   }
 
-  /// Despliega el componente modal del escáner óptico.
   void _abrirEscaner() {
     showModalBottomSheet(
       context: context,

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// Módulo de visualización del ciclo de conferencias.
-/// Presenta los eventos teóricos y valida la disponibilidad según la fecha actual.
 class ConferenciasTab extends StatelessWidget {
   final List<Map<String, dynamic>> eventos;
   final Function(String) onRegister;
@@ -15,8 +13,8 @@ class ConferenciasTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Filtra la colección de eventos para aislar únicamente las conferencias.
-    final conferencias = eventos.where((e) => e['Talleres'] == null).toList();
+    // FILTRO CORREGIDO: Todo lo que no sea 'S' es una conferencia.
+    final conferencias = eventos.where((e) => e['Talleres'] != "S").toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
@@ -27,7 +25,6 @@ class ConferenciasTab extends StatelessWidget {
         ),
         const SizedBox(height: 15),
 
-        // Iteración y renderizado de las tarjetas de conferencia.
         ...conferencias.map((conf) {
           final bool esDeHoy = conf['es_de_hoy'] == true;
 
@@ -52,8 +49,6 @@ class ConferenciasTab extends StatelessWidget {
     );
   }
 
-  /// Construye el componente visual para una conferencia específica.
-  /// Incluye validación de interacción mediante la variable [esDeHoy].
   Widget _cardInformativa(
     BuildContext context, {
     required String id,
@@ -83,11 +78,9 @@ class ConferenciasTab extends StatelessWidget {
         onTap: asistido
             ? null
             : () {
-                // Notificación contextual dependiendo del estado temporal del evento.
                 final String mensaje = esDeHoy
                     ? "Usa el botón central de escáner QR para registrar tu asistencia."
                     : "Esta conferencia está programada para otra fecha. No disponible hoy.";
-
                 final Color colorFondo = esDeHoy
                     ? Colors.indigo
                     : Colors.redAccent;
@@ -135,7 +128,6 @@ class ConferenciasTab extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Renderizado de etiquetas de estado.
                   if (asistido)
                     const Badge(
                       label: Text("REGISTRADO"),
@@ -165,8 +157,6 @@ class ConferenciasTab extends StatelessWidget {
                   _filaDetalle(Icons.location_on, "Lugar: $lugar"),
                   const SizedBox(height: 8),
                   _filaDetalle(Icons.access_time, "Horario: $hora"),
-
-                  // Despliegue condicional del botón de material adjunto.
                   if (pdfUrl.isNotEmpty) ...[
                     const SizedBox(height: 15),
                     ElevatedButton.icon(
@@ -189,7 +179,6 @@ class ConferenciasTab extends StatelessWidget {
     );
   }
 
-  /// Construye una fila de detalles utilizando una estructura uniforme.
   Widget _filaDetalle(IconData icon, String texto) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,7 +192,6 @@ class ConferenciasTab extends StatelessWidget {
     );
   }
 
-  /// Procesa la apertura de enlaces externos hacia el material de la conferencia.
   Future<void> _launchURL(String url) async {
     final Uri uri = Uri.parse(url);
     if (!await launchUrl(uri))
