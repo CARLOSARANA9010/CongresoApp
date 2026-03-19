@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:congreso_app/screens/splash_screen.dart';
+// Cambiamos la importación para ir directo al MainScreen
+import 'package:congreso_app/screens/alumno/main_screen.dart';
 import 'package:congreso_app/data/models/alumno_model.dart';
 import 'package:congreso_app/data/services/api_service.dart';
 
@@ -14,8 +15,10 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _userController = TextEditingController();
   bool _isLoading = false; // Para mostrar el progreso de carga
 
-  /// MÉTODO: _intentarAcceso
-  /// Ahora es ASÍNCRONO para conectar con NocoDB.
+  /**
+   * MÉTODO: _intentarAcceso
+   * Conecta con NocoDB de forma asíncrona para validar credenciales.
+   */
   Future<void> _intentarAcceso() async {
     String email = _userController.text.trim();
 
@@ -40,12 +43,12 @@ class _LoginPageState extends State<LoginPage> {
       final Alumno? alumnoEncontrado = await api.loginAlumno(email);
 
       if (alumnoEncontrado != null) {
-        // ¡ÉXITO! Navegamos con los datos reales del ITESCAM
+        // ¡ÉXITO! Navegamos directo al MainScreen con los datos del alumno
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => SplashScreen(alumno: alumnoEncontrado),
+            builder: (context) => MainScreen(alumno: alumnoEncontrado),
           ),
         );
       } else {

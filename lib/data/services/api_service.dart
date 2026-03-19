@@ -7,13 +7,10 @@ import '../models/alumno_model.dart';
 
 class ApiService {
   // --- RUTAS BASE (Dinámicas) ---
-  // La externa es la que usaremos por defecto si no estamos en el ITESCAM
   String _dominioBase = "https://nocodb.redsureste.org/api/v2/tables";
-
-  // IP Local del ITESCAM para cuando estemos en su Wi-Fi
   final String _ipLocalBase = "http://10.0.10.15:8036/api/v2/tables";
 
-  // --- IDs DE TABLAS (Para armar URLs limpias) ---
+  // --- IDs DE TABLAS ---
   final String _tablaAlumnos = "mfqlf08es6ma58g";
   final String _tablaTalleres = "mlxpwzo5buho1ww";
   final String _tablaConferencias = "mtizpdmz3viqtyw";
@@ -22,33 +19,27 @@ class ApiService {
   final String apiKey = "IQJ3Edbd1aZX3Jmjroo6zodBwwlt7sAC-6yPUZEP";
 
   /// DETECTOR DE RED
-  /// Verifica si el servidor local del ITESCAM está accesible.
-  /// Si responde rápido, la app cambiará al "modo local" para saltarse el firewall.
   Future<void> detectarRed() async {
     try {
       print("Haciendo ping a la red del ITESCAM");
-      // Hacemos una petición rápida a la tabla de conferencias (o alumnos) en local
       final String pingUrl =
           "$_ipLocalBase/$_tablaConferencias/records?limit=1";
-
       final response = await http
           .get(Uri.parse(pingUrl), headers: {"xc-token": apiKey})
-          .timeout(const Duration(seconds: 2)); // 2 segundos o abortamos
+          .timeout(const Duration(seconds: 2));
       if (response.statusCode >= 200) {
         _dominioBase = _ipLocalBase;
         print("Red ITESCAM detectada. Usando IP 10.0.10.1.");
       }
     } catch (e) {
-      // Si hay timeout o error, nos quedamos con nocodb.redsureste.org
       _dominioBase = "https://nocodb.redsureste.org/api/v2/tables";
       print("Fuera del Tec o IP bloqueada. Usando ruta externa.");
     }
   }
 
-  ///  LOGIN DEL ALUMNO (Descarga completa + Filtro local)
+  /// LOGIN DEL ALUMNO
   Future<Alumno?> loginAlumno(String email) async {
-    await detectarRed(); // Validamos dónde estamos antes de intentar entrar
-
+    await detectarRed();
     final cleanEmail = email.trim().toLowerCase();
     final String url = "$_dominioBase/$_tablaAlumnos/records?limit=1000";
 
@@ -77,7 +68,7 @@ class ApiService {
     }
   }
 
-  ///  OBTENER TODOS LOS TALLERES (Para filtrar los días del alumno)
+  /// OBTENER TODOS LOS TALLERES
   Future<List<dynamic>> getWorkshops() async {
     await detectarRed();
     final String urlWorkshops =
@@ -100,7 +91,7 @@ class ApiService {
     }
   }
 
-  ///  OBTENER CONFERENCIAS GLOBALES
+  /// OBTENER CONFERENCIAS GLOBALES
   Future<List<dynamic>> getConferencias() async {
     await detectarRed();
     final String urlConferencias =
@@ -123,7 +114,7 @@ class ApiService {
     }
   }
 
-  ///  REGISTRAR ASISTENCIA (Con metadatos de GPS y Dispositivo)
+  /// REGISTRAR ASISTENCIA
   Future<bool> registrarAsistencia({
     required String idEvento,
     required String idUsuario,
@@ -134,42 +125,35 @@ class ApiService {
     final String urlAsistencia = "$_dominioBase/$_tablaAsistencias/records";
 
     try {
-      // Metadatos del dispositivo
       String deviceId = await _obtenerDeviceId();
-      String origen = kIsWeb ? "web" : "movil";
-
       DateTime ahora = DateTime.now();
-      DateTime horaAjustada = ahora.subtract(const Duration(hours: 6)); // UTC-6
+      DateTime horaAjustada = ahora.subtract(const Duration(hours: 6));
+
+      // LIMPIEZA TOTAL: Solo el número o el ID puro
+      String idFinal = idEvento
+          .replaceAll("taller_", "")
+          .replaceAll("conf_", "")
+          .replaceAll("concurso_", "")
+          .trim();
 
       final Map<String, dynamic> body = {
-        "event_id": idEvento,
+        "event_id": idFinal,
         "user_id": idUsuario,
         "attendance_at": horaAjustada.toIso8601String(),
         "device_id": deviceId,
         "event_type": tipo,
-        "source": origen,
+        "source": kIsWeb ? "web" : "movil",
         "record_place": lugar ?? "Ubicación desconocida",
       };
 
       final response = await http.post(
         Uri.parse(urlAsistencia),
-        headers: {
-          "xc-token": apiKey,
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
+        headers: {"xc-token": apiKey, "Content-Type": "application/json"},
         body: json.encode(body),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        print("¡Asistencia registrada con éxito en NocoDB!");
-        return true;
-      } else {
-        print("Error del servidor al registrar: ${response.body}");
-        return false;
-      }
+      return (response.statusCode == 200 || response.statusCode == 201);
     } catch (e) {
-      print("Error catastrófico en la asistencia: $e");
       return false;
     }
   }
@@ -178,7 +162,7 @@ class ApiService {
   Future<List<String>> getAsistenciasUsuario(String email) async {
     await detectarRed();
     final String url =
-        "$_dominioBase/$_tablaAsistencias/records?where=(user_id,eq,$email)";
+        "$_dominioBase/$_tablaAsistencias/records?where=(user_id,eq,${email.trim().toLowerCase()})&limit=1000";
 
     try {
       final response = await http.get(
@@ -199,7 +183,7 @@ class ApiService {
     return [];
   }
 
-  // --- Helper interno para limpiar el código principal ---
+  // --- Helper interno ---
   Future<String> _obtenerDeviceId() async {
     final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
     if (kIsWeb) {
