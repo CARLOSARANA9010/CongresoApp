@@ -14,10 +14,8 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _userController = TextEditingController();
   bool _isLoading = false; // Para mostrar el progreso de carga
 
-  /**
-   * MÉTODO: _intentarAcceso
-   * Ahora es ASÍNCRONO para conectar con NocoDB.
-   */
+  /// MÉTODO: _intentarAcceso
+  /// Ahora es ASÍNCRONO para conectar con NocoDB.
   Future<void> _intentarAcceso() async {
     String email = _userController.text.trim();
 

@@ -241,10 +241,11 @@ class HexOfHexAssemblerPainter extends CustomPainter {
       final angle = (i * 60) * pi / 180;
       final x = center.dx + radius * cos(angle);
       final y = center.dy + radius * sin(angle);
-      if (i == 0)
+      if (i == 0) {
         path.moveTo(x, y);
-      else
+      } else {
         path.lineTo(x, y);
+      }
     }
     path.close();
 

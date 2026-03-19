@@ -206,7 +206,8 @@ class ConferenciasTab extends StatelessWidget {
   /// Procesa la apertura de enlaces externos hacia el material de la conferencia.
   Future<void> _launchURL(String url) async {
     final Uri uri = Uri.parse(url);
-    if (!await launchUrl(uri))
+    if (!await launchUrl(uri)) {
       throw 'No se pudo procesar la solicitud para el enlace: $url';
+    }
   }
 }
