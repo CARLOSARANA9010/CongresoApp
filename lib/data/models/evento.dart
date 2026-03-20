@@ -1,10 +1,8 @@
-/**
- * EVENTO MODEL - Representación de datos de conferencias y talleres
- * * NOTA PARA DESARROLLO BACKEND:
- * Este modelo utiliza un patrón 'Factory' para la deserialización de JSON.
- * Asegurarse de que las llaves del mapa (keys) coincidan exactamente con 
- * la respuesta del API del ITESCAM para evitar valores vacíos por defecto.
- */
+/// EVENTO MODEL - Representación de datos de conferencias y talleres
+/// * NOTA PARA DESARROLLO BACKEND:
+/// Este modelo utiliza un patrón 'Factory' para la deserialización de JSON.
+/// Asegurarse de que las llaves del mapa (keys) coincidan exactamente con 
+/// la respuesta del API del ITESCAM para evitar valores vacíos por defecto.
 class Evento {
   final String dia;
   final String hora;
@@ -26,18 +24,16 @@ class Evento {
     required this.esTaller,
   });
 
-  /**
-   * FACTORY CONSTRUCTOR: Evento.fromJson
-   * Mapea un objeto dinámico (JSON) proveniente del servidor a una instancia de clase Evento.
-   * * Mapeo de llaves backend (Inventario WhatsApp 2026-02-27):
-   * - 'Dia' -> dia
-   * - 'Hora' -> hora
-   * - 'Salon' -> salon
-   * - 'Nombre' -> ponente
-   * - 'Nombre conferencia' -> tituloConferencia
-   * - 'Documento completo' -> documentoUrl
-   * - 'Responsable' -> responsable
-   */
+  /// FACTORY CONSTRUCTOR: Evento.fromJson
+  /// Mapea un objeto dinámico (JSON) proveniente del servidor a una instancia de clase Evento.
+  /// * Mapeo de llaves backend (Inventario WhatsApp 2026-02-27):
+  /// - 'Dia' -> dia
+  /// - 'Hora' -> hora
+  /// - 'Salon' -> salon
+  /// - 'Nombre' -> ponente
+  /// - 'Nombre conferencia' -> tituloConferencia
+  /// - 'Documento completo' -> documentoUrl
+  /// - 'Responsable' -> responsable
   factory Evento.fromJson(Map<String, dynamic> json) {
     return Evento(
       // Se utiliza el operador ?? para garantizar que el tipo String no sea Null

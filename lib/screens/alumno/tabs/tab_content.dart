@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
-/**
- * ALUMNO TAB CONTENT - Vista de Detalle de Progreso por Categoría
- * * NOTA PARA BACKEND: 
- * Este widget filtra la lista maestra 'eventos' basándose en el parámetro 'tipo'.
- * 1. Calcula el porcentaje de asistencia localmente para la gráfica circular.
- * 2. Genera un historial visual de los eventos ya marcados como 'asistido: true'.
- */
+/// ALUMNO TAB CONTENT - Vista de Detalle de Progreso por Categoría
+/// * NOTA PARA BACKEND: 
+/// Este widget filtra la lista maestra 'eventos' basándose en el parámetro 'tipo'.
+/// 1. Calcula el porcentaje de asistencia localmente para la gráfica circular.
+/// 2. Genera un historial visual de los eventos ya marcados como 'asistido: true'.
 class AlumnoTabContent extends StatelessWidget {
   final String tipo; // "Conferencias" o "Talleres"
   final String usuario;

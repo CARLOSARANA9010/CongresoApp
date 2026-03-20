@@ -56,8 +56,25 @@ class ApiService {
         for (var item in list) {
           String dbEmail = item['email']?.toString().trim().toLowerCase() ?? '';
           if (dbEmail == cleanEmail) {
+            if (item['status'] == 'Activo') {
+              // Cambia el status a Registrado
+              final String urlUpdate = "$_dominioBase/$_tablaAlumnos/records/${item['id']}";
+              final Map<String, dynamic> body = {
+                "status": "Registrado",
+              };
+              await http.patch(
+                Uri.parse(urlUpdate),
+                headers: {"xc-token": apiKey, "Content-Type": "application/json"},
+                body: json.encode(body),
+              );
+            }
+            if (item['status'] == 'Pendiente') {
+              print("Alumno pendiente de pago: ${item['name']}");
+              return null;
+            }
             print("¡BINGO! Alumno encontrado: ${item['name']}");
             return Alumno.fromJson(item);
+            }
           }
         }
       }

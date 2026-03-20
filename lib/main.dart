@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:congreso_app/screens/auth/login_page.dart';
 
-/**
- * PUNTO DE ENTRADA PRINCIPAL - Congreso App ITESCAM
- * * NOTA PARA DESARROLLO:
- * 1. Aquí se inicializa la configuración global de la aplicación.
- * 2. El tema utiliza Material 3 con el color índigo como semilla institucional [cite: 2026-02-27].
- * 3. La navegación comienza siempre en 'LoginPage' para asegurar la autenticación [cite: 2026-02-27].
- */
+/// PUNTO DE ENTRADA PRINCIPAL - Congreso App ITESCAM
+/// * NOTA PARA DESARROLLO:
+/// 1. Aquí se inicializa la configuración global de la aplicación.
+/// 2. El tema utiliza Material 3 con el color índigo como semilla institucional [cite: 2026-02-27].
+/// 3. La navegación comienza siempre en 'LoginPage' para asegurar la autenticación [cite: 2026-02-27].
 void main() => runApp(const CongresoApp());
 
 class CongresoApp extends StatelessWidget {
