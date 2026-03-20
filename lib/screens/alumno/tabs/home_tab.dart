@@ -82,7 +82,7 @@ class HomeTab extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 25),
               padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
-                color: Colors.redAccent.withOpacity(0.1),
+                color: Colors.redAccent.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.redAccent, width: 1),
               ),
@@ -154,7 +154,7 @@ class HomeTab extends StatelessWidget {
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: (proximoEvento['color'] as Color? ?? Colors.indigo)
-                          .withOpacity(0.1),
+                          .withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(

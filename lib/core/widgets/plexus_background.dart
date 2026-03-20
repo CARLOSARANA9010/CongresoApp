@@ -72,12 +72,12 @@ class PlexusPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     // 1. Definimos los pinceles PRIMERO
     final paintPoint = Paint()
-      ..color = Colors.indigo.withOpacity(0.5)
+      ..color = Colors.indigo.withValues(alpha: 0.5)
       ..strokeCap = StrokeCap.round
       ..strokeWidth = 4;
 
     final paintGlow = Paint()
-      ..color = Colors.cyan.withOpacity(0.3)
+      ..color = Colors.cyan.withValues(alpha: 0.3)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
 
     final paintLine = Paint()..strokeWidth = 1;
@@ -97,7 +97,8 @@ class PlexusPainter extends CustomPainter {
         double distance = (p1 - p2).distance;
 
         if (distance < 150) {
-          paintLine.color = Colors.indigo.withOpacity(1 - (distance / 150));
+          paintLine.color =
+              Colors.indigo.withValues(alpha: 1 - (distance / 150));
           canvas.drawLine(p1, p2, paintLine);
         }
       }

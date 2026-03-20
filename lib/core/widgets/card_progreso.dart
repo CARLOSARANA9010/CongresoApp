@@ -31,7 +31,7 @@ class CardProgreso extends StatelessWidget {
               value: porcentaje,
               strokeWidth: 12,
               color: colorPrincipal,
-              backgroundColor: colorPrincipal.withOpacity(0.1),
+              backgroundColor: colorPrincipal.withValues(alpha: 0.1),
             ),
           ),
           // El texto central

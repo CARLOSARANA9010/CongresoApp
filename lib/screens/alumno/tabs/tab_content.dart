@@ -57,7 +57,7 @@ class AlumnoTabContent extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.indigo.withOpacity(0.05),
+                color: Colors.indigo.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Stack(

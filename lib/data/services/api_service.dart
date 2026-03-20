@@ -21,7 +21,7 @@ class ApiService {
   /// DETECTOR DE RED
   Future<void> detectarRed() async {
     try {
-      print("Haciendo ping a la red del ITESCAM");
+      debugPrint("Haciendo ping a la red del ITESCAM");
       final String pingUrl =
           "$_ipLocalBase/$_tablaConferencias/records?limit=1";
       final response = await http
@@ -29,11 +29,11 @@ class ApiService {
           .timeout(const Duration(seconds: 2));
       if (response.statusCode >= 200) {
         _dominioBase = _ipLocalBase;
-        print("Red ITESCAM detectada. Usando IP 10.0.10.1.");
+        debugPrint("Red ITESCAM detectada. Usando IP 10.0.10.1.");
       }
     } catch (e) {
       _dominioBase = "https://nocodb.redsureste.org/api/v2/tables";
-      print("Fuera del Tec o IP bloqueada. Usando ruta externa.");
+      debugPrint("Fuera del Tec o IP bloqueada. Usando ruta externa.");
     }
   }
 
@@ -54,33 +54,37 @@ class ApiService {
         List<dynamic> list = data['list'];
 
         for (var item in list) {
-          String dbEmail = item['email']?.toString().trim().toLowerCase() ?? '';
+          String dbEmail =
+              item['email']?.toString().trim().toLowerCase() ?? '';
           if (dbEmail == cleanEmail) {
             if (item['status'] == 'Activo') {
               // Cambia el status a Registrado
-              final String urlUpdate = "$_dominioBase/$_tablaAlumnos/records/${item['id']}";
+              final String urlUpdate =
+                  "$_dominioBase/$_tablaAlumnos/records/${item['id']}";
               final Map<String, dynamic> body = {
                 "status": "Registrado",
               };
               await http.patch(
                 Uri.parse(urlUpdate),
-                headers: {"xc-token": apiKey, "Content-Type": "application/json"},
+                headers: {
+                  "xc-token": apiKey,
+                  "Content-Type": "application/json"
+                },
                 body: json.encode(body),
               );
             }
             if (item['status'] == 'Pendiente') {
-              print("Alumno pendiente de pago: ${item['name']}");
+              debugPrint("Alumno pendiente de pago: ${item['name']}");
               return null;
             }
-            print("¡BINGO! Alumno encontrado: ${item['name']}");
+            debugPrint("¡BINGO! Alumno encontrado: ${item['name']}");
             return Alumno.fromJson(item);
-            }
           }
         }
       }
       return null;
     } catch (e) {
-      print("Error en login: $e");
+      debugPrint("Error en login: $e");
       return null;
     }
   }
@@ -103,7 +107,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      print("Error al traer lista de talleres: $e");
+      debugPrint("Error al traer lista de talleres: $e");
       return [];
     }
   }
@@ -126,7 +130,7 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      print("Error al traer conferencias: $e");
+      debugPrint("Error al traer conferencias: $e");
       return [];
     }
   }
@@ -195,7 +199,7 @@ class ApiService {
             .toList();
       }
     } catch (e) {
-      print("Error recuperando asistencias: $e");
+      debugPrint("Error recuperando asistencias: $e");
     }
     return [];
   }

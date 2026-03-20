@@ -50,7 +50,7 @@ class _MainScreenState extends State<MainScreen> {
       widget.alumno.email,
     );
 
-    final String miTallerNombre = widget.alumno.workshopName ?? '';
+    final String miTallerNombre = widget.alumno.workshopName;
     final String miConcurso = widget.alumno.contestName ?? '';
 
     // --- CARGA DE TALLERES ---
@@ -182,6 +182,7 @@ class _MainScreenState extends State<MainScreen> {
     // 5. OBTENCIÓN DEL ID MAESTRO QUE SE ENVÍA A NOCODB
     String idParaRegistro = eventoTarget['id_manual'].toString();
 
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text("Autenticando ubicación y procesando registro..."),
@@ -225,8 +226,10 @@ class _MainScreenState extends State<MainScreen> {
     }
 
     Position posicion = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-      timeLimit: const Duration(seconds: 10),
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 10),
+      ),
     );
 
     double distancia = Geolocator.distanceBetween(
