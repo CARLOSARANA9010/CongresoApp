@@ -1,28 +1,32 @@
-/**
- * ALUMNO MODEL - Representación del perfil de usuario y métricas de desempeño
- * * NOTA PARA DESARROLLO BACKEND:
- * 1. El campo 'nombre' debe extraerse del registro de inscripción del alumno [cite: 2026-01-31].
- * 2. El campo 'asistencia' es un valor decimal (0.0 a 1.0) que representa el porcentaje 
- * de participación total en el congreso.
- */
 class Alumno {
-  final String
-  nombre; // Nombre completo o Matrícula del usuario [cite: 2026-01-31]
-  final double asistencia; // Porcentaje de eventos asistidos (0.0 - 1.0)
+  final int? id;
+  final String name;
+  final String secondName;
+  final String email;
+  final String workshopName;
+  final String? contestName;
+  final String status;
 
-  Alumno({required this.nombre, required this.asistencia});
+  Alumno({
+    this.id,
+    required this.name,
+    required this.secondName,
+    required this.email,
+    required this.workshopName,
+    this.contestName,
+    required this.status,
+  });
 
-  /**
-   * FACTORY CONSTRUCTOR: Alumno.fromJson
-   * Utilizar este método para deserializar la respuesta del API de perfil.
-   * Se recomienda que el backend entregue la asistencia ya calculada 
-   * o el conteo de eventos para realizar la operación en Flutter [cite: 2026-02-27].
-   */
+  // Para convertir el JSON que nos manda NocoDB a un objeto de Flutter
   factory Alumno.fromJson(Map<String, dynamic> json) {
     return Alumno(
-      nombre: json['nombre_completo']?.toString() ?? 'Usuario ITESCAM',
-      // Se asegura de convertir cualquier valor numérico del backend a double
-      asistencia: (json['porcentaje_asistencia'] ?? 0.0).toDouble(),
+      id: json['Id'],
+      name: json['name'] ?? '',
+      secondName: json['second_name'] ?? '',
+      email: json['email'] ?? '',
+      workshopName: json['workshop_name'] ?? '',
+      contestName: json['contest_name'],
+      status: json['status'] ?? 'Pendiente',
     );
   }
 }

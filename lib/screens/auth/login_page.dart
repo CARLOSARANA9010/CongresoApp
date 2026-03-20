@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:congreso_app/screens/splash_screen.dart';
+// Cambiamos la importación para ir directo al MainScreen
+import 'package:congreso_app/screens/alumno/main_screen.dart';
+import 'package:congreso_app/data/models/alumno_model.dart';
+import 'package:congreso_app/data/services/api_service.dart';
 
-/**
- * LOGIN PAGE - Punto de entrada principal para la autenticación
- * * NOTA PARA DESARROLLO BACKEND:
- * 1. Actualmente la validación es local y solo verifica que el campo no esté vacío.
- * 2. Se debe integrar aquí la llamada al ApiService para validar matrícula/usuario.
- * 3. Se bloquea el acceso a usuarios tipo 'admin' ya que esta interfaz es para alumnos.
- */
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -16,51 +12,59 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  // Controlador para capturar la entrada de texto del usuario (Matrícula)
   final TextEditingController _userController = TextEditingController();
+  bool _isLoading = false; // Para mostrar el progreso de carga
 
   /**
    * MÉTODO: _intentarAcceso
-   * Gestiona el flujo de autenticación y navegación inicial.
+   * Conecta con NocoDB de forma asíncrona para validar credenciales.
    */
-  void _intentarAcceso() {
-    String user = _userController.text.trim();
+  Future<void> _intentarAcceso() async {
+    String email = _userController.text.trim();
 
-    // Validación básica de campo requerido
-    if (user.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Por favor ingresa tu usuario")),
+    if (email.isEmpty) {
+      _mostrarMensaje("Por favor ingresa tu correo");
+      return;
+    }
+
+    if (email.toLowerCase() == 'admin') {
+      _mostrarMensaje(
+        "Acceso denegado. App exclusiva para Alumnos.",
+        color: Colors.orange,
       );
       return;
     }
 
-    /** * LÓGICA DE NEGOCIO: 
-     * Restricción de perfiles. El perfil administrativo debe usar una App distinta.
-     */
-    if (user.toLowerCase() == 'admin') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Acceso denegado. Esta app es exclusiva para Alumnos."),
-          backgroundColor: Colors.orange,
-        ),
-      );
-    } else {
-      /**
-       * NAVEGACIÓN POST-LOGIN:
-       * Se utiliza 'pushReplacement' para limpiar el stack de navegación y 
-       * evitar que el usuario regrese al Login con el botón físico de 'atrás'.
-       * Se envía el parámetro 'user' hacia el SplashScreen para personalizar la carga.
-       */
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => SplashScreen(
-            nombreUsuario:
-                user, // Dato persistido durante la sesión [cite: 2026-01-31]
+    setState(() => _isLoading = true);
+
+    try {
+      // LLAMADA REAL A NOCODB PARA VERIFICAR EL USUARIO
+      final ApiService api = ApiService();
+      final Alumno? alumnoEncontrado = await api.loginAlumno(email);
+
+      if (alumnoEncontrado != null) {
+        // ¡ÉXITO! Navegamos directo al MainScreen con los datos del alumno
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MainScreen(alumno: alumnoEncontrado),
           ),
-        ),
-      );
+        );
+      } else {
+        _mostrarMensaje("Usuario no encontrado. Revisa tu correo.");
+      }
+    } catch (e) {
+      _mostrarMensaje("Error de conexión. Intenta más tarde.");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _mostrarMensaje(String msg, {Color color = Colors.redAccent}) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
   }
 
   @override
@@ -73,30 +77,28 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Identidad Visual del Congreso/Institución
                 Image.asset(
-                  'assets/logo.png', // Logo institucional
+                  'assets/logo.png',
                   height: 150,
                   fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 60),
 
-                // Campo de entrada para Matrícula/Usuario
                 TextField(
                   controller: _userController,
-                  keyboardType: TextInputType.text,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
-                    labelText: 'Usuario o Matrícula',
-                    helperText: 'Ingresa tu credencial institucional',
+                    labelText: 'Correo Electrónico',
+                    helperText: 'Usa el correo con el que te registraste',
                     border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person),
+                    prefixIcon: Icon(Icons.email),
                   ),
                 ),
                 const SizedBox(height: 25),
 
-                // Botón de Acción Principal
+                // BOTÓN DINÁMICO: Muestra carga o el texto de ingresar
                 ElevatedButton(
-                  onPressed: _intentarAcceso,
+                  onPressed: _isLoading ? null : _intentarAcceso,
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 55),
                     backgroundColor: Colors.indigo,
@@ -105,10 +107,15 @@ class _LoginPageState extends State<LoginPage> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: const Text(
-                    "INGRESAR",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          "INGRESAR",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ],
             ),
