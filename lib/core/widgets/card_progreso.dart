@@ -18,7 +18,7 @@ class CardProgreso extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
-      // Sin decoración de fondo para que sea transparente como pediste
+
       decoration: const BoxDecoration(color: Colors.transparent),
       child: Stack(
         alignment: Alignment.center,
