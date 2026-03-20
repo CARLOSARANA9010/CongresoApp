@@ -12,7 +12,7 @@ class _PlexusBackgroundState extends State<PlexusBackground>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   List<Point> points = [];
-  final int numberOfPoints = 35; // Ajusta según qué tan saturado lo quieras
+  final int numberOfPoints = 35;
 
   @override
   void initState() {
